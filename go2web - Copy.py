@@ -49,7 +49,21 @@ def displayWebContent(contentSoup):
         elif tagType in ['ul', 'li']:
             print(f"{'  - ' if tagType == 'li' else ''}{element.text}")
 
-
+def performGoogleSearch(query, cache):
+    """Performs a Google search and caches the results."""
+    if query in cache:
+        return cache[query]
+    try:
+        hostname = "www.google.com"
+        searchPath = f"/search?q={quote_plus(query)}"
+        content, _ = fetchWebPage(hostname, searchPath)
+        if content:
+            links = content.find_all('a')
+            searchLinks = [link.get('href').split('/url?q=')[1].split('&')[0] for link in links if link.get('href', '').startswith('/url?q=')]
+            cache[query] = searchLinks[:10]
+            return searchLinks[:10]
+    except Exception as error:
+        return f"Error: {str(error)}"
 
 def showInstructions():
     """Prints usage instructions."""
@@ -71,7 +85,13 @@ def main():
             displayWebContent(contentSoup)
         else:
             print(webContent)
-
+    elif option == '-s':
+        searchResults = performGoogleSearch(argument)
+        if isinstance(searchResults, list):
+            for index, link in enumerate(searchResults, 1):
+                print(f"{index}. {link}")
+        else:
+            print(searchResults)
     elif option == '-h':
         showInstructions()
     else:
