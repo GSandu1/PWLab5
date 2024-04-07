@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import ssl
 import pickle
@@ -35,11 +36,21 @@ def fetchWebPage(hostname, endpoint, redirectCount=0, maxRedirects=5):
         headers = responseText.split("\r\n")
 
         if headers[0].startswith("HTTP/1.1 3"):
-            locationHeader = next((line.split(": ", 1)[1].strip() for line in headers if line.startswith("Location:")), None)
+            print("Redirecting")
+            locationHeader = next((line.split(": ", 1)[1].strip() for line in headers if line.startswith("Location:")),
+                                  None)
             if locationHeader:
                 parsedLocation = urlparse(locationHeader)
+                currentScheme = urlparse(endpoint).scheme or "https"  # Assuming original is HTTPS if not specified
+                newScheme = parsedLocation.scheme
+
+                # Check and print debug message for HTTP to HTTPS redirect
+                if currentScheme.lower() == "http" and newScheme.lower() == "https":
+                    print("Debug: Redirecting from HTTP to HTTPS")
+
                 if redirectCount < maxRedirects:
-                    return fetchWebPage(parsedLocation.netloc, parsedLocation.path, redirectCount + 1, maxRedirects)
+                    return fetchWebPage(parsedLocation.netloc, parsedLocation.path or "/", redirectCount + 1,
+                                        maxRedirects)
         pageContent = BeautifulSoup(responseBytes, 'html.parser')
         return pageContent, pageContent.get_text(strip=True)
     except Exception as error:
