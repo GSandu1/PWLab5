@@ -1,13 +1,24 @@
 import os
 import ssl
-
+import pickle
 import sys
 import socket
 from urllib.parse import urlparse, quote_plus
 from bs4 import BeautifulSoup
 
+CACHE_FILENAME = "data.pkl"
 
+def loadCache():
+    """Loads the cache from a file."""
+    if os.path.isfile(CACHE_FILENAME):
+        with open(CACHE_FILENAME, "rb") as file:
+            return pickle.load(file)
+    return {}
 
+def saveCache(cache):
+    """Saves the cache to a file."""
+    with open(CACHE_FILENAME, "wb") as file:
+        pickle.dump(cache, file)
 
 def fetchWebPage(hostname, endpoint, redirectCount=0, maxRedirects=5):
     """Fetches a web page using HTTPS."""
@@ -61,6 +72,7 @@ def performGoogleSearch(query, cache):
             links = content.find_all('a')
             searchLinks = [link.get('href').split('/url?q=')[1].split('&')[0] for link in links if link.get('href', '').startswith('/url?q=')]
             cache[query] = searchLinks[:10]
+            saveCache(cache)
             return searchLinks[:10]
     except Exception as error:
         return f"Error: {str(error)}"
@@ -73,6 +85,7 @@ def showInstructions():
     print("  go2web -h                  Show this help message")
 
 def main():
+    cache = loadCache()
     if len(sys.argv) < 3:
         showInstructions()
         return
@@ -86,7 +99,7 @@ def main():
         else:
             print(webContent)
     elif option == '-s':
-        searchResults = performGoogleSearch(argument)
+        searchResults = performGoogleSearch(argument, cache)
         if isinstance(searchResults, list):
             for index, link in enumerate(searchResults, 1):
                 print(f"{index}. {link}")
